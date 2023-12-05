@@ -1,0 +1,18 @@
+# Compiled object files
+*.o
+
+# Executables and dependables
+plaidsh
+
+# Editor and IDE files
+.vscode
+
+
+# Linux and macOS swap files
+*.swp
+
+# Windows-specific files
+Thumbs.db
+
+#txt 
+*.txt
