@@ -3,6 +3,11 @@
 
 # Executables and dependables
 plaidsh
+tk
+
+# Test
+setup_playground.sh
+plaidsh_test.py
 
 # Editor and IDE files
 .vscode

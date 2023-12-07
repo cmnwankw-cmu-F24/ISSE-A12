@@ -1,9 +1,5 @@
 /*
- * expr_whizz.c
- *
- * A recursive descent parser for a simple arithmetic calculator, with
- * the operators + - * / % ^, and unary minus. Values are held as
- * doubles.
+ * Plaid Shell
  *
  * Author: Nwankwo Chukwunonso Michael
  */
