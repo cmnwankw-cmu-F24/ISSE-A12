@@ -11,10 +11,15 @@
 #include <readline/history.h>
 #include <stdbool.h>
 
+#include "clist.h"
+#include "tokenize.h"
+#include "token.h"
+
 int main(int argc, char *argv[])
 {
     char *input = NULL;
     bool time_to_quit = false;
+    char errmsg[128] = {'\0'};
 
 
     printf("Welcome to Plaid Shell!\n");
@@ -34,14 +39,18 @@ int main(int argc, char *argv[])
 
         add_history(input);
 
-        printf("%s\n", input);
+        // printf("%s\n", input);
+
+        CList tokens = TOK_tokenize_input(input, errmsg, sizeof(errmsg));
 
         // uncomment for more debug info
-        // TOK_print(tokens);
+        TOK_print(tokens);
 
     loop_end:
         free(input);
         input = NULL;
+        TOK_free(tokens);
+        tokens = NULL;
     }
 
     return 0;

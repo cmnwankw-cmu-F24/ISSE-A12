@@ -156,39 +156,53 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       char *word = (char *)calloc(capacity, sizeof(char));
       assert(word);
 
-      while (*input != '\0')
+      while (*input != '\0' && *input != '\"')
       {
-        if (*input == '"' && *(input - 1) != '\\')
-        {
-          // Closing quote without escape
-          break;
-        }
 
-        //check for escape sequence conditions
-        if(*input == '\\'){
-          //skip the escape character
+        // check for escape sequence conditions
+        if (*input == '\\' && (*(input + 1) == 'n' ||
+                               *(input + 1) == 'r' ||
+                               *(input + 1) == 't' ||
+                               *(input + 1) == '\"' ||
+                               *(input + 1) == '\\' ||
+                               *(input + 1) == ' ' ||
+                               *(input + 1) == '|' ||
+                               *(input + 1) == '>' ||
+                               *(input + 1) == '<'))
+        {
+          // skip the escape character
           input++;
 
           // Variable to hold escape character
           char escape_char[2] = {'\0'};
 
-          switch(*input){
-            case 'n': escape_char[0] = '\n'; break;
-            case 'r': escape_char[0] = '\r'; break;
-            case 't': escape_char[0] = '\t'; break;
-            case '\"': escape_char[0] = '\"'; break;
-            case '\\': escape_char[0] = '\\'; break;
-            // case ' ': escape_char[0] = ' '; break;
-            // case '|': escape_char[0] = '|'; break;
-            // case '>': escape_char[0] = '>'; break;
-            // case '<': escape_char[0] = '<'; break;
-            default: escape_char[0] = *input;
-
+          switch (*input)
+          {
+          case 'n':
+            escape_char[0] = '\n';
+            break;
+          case 'r':
+            escape_char[0] = '\r';
+            break;
+          case 't':
+            escape_char[0] = '\t';
+            break;
+          case '\"':
+            escape_char[0] = '\"';
+            break;
+          // case '\\': escape_char[0] = '\\'; break;
+          // case ' ': escape_char[0] = ' '; break;
+          // case '|': escape_char[0] = '|'; break;
+          // case '>': escape_char[0] = '>'; break;
+          // case '<': escape_char[0] = '<'; break;
+          default: // handle \" \\ space | > <
+            escape_char[0] = *input;
           }
-           strncat(word, escape_char, 1); 
-
-        }else{
-          strncat(word, input, 1);   
+          strncat(word, escape_char, 1);
+        }
+        else
+        {
+          strncat(word, input, 1);
         }
         len++;
         input++;
@@ -197,6 +211,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         {
           capacity *= 2;
           word = (char *)realloc(word, capacity);
+          assert(word);
         }
       }
 
@@ -205,10 +220,11 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         // Error, I hit the null terminator without closing
         // before the terminating " for the quoted word
         snprintf(errmsg, errmsg_sz, "Position %li: Unterminated \"quoted word\"", pos + 1);
-        CL_free(tokens);
-        goto error_handling;
-        // tokens = NULL;
-        // return NULL;
+        free(word);
+        TOK_free(tokens);
+        word = NULL;
+        tokens = NULL;
+        return NULL;
       }
 
       token.type = TOK_QUOTED_WORD;
@@ -233,45 +249,62 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       char *word = (char *)calloc(capacity, sizeof(char));
       assert(word);
 
-
       while (*input != '<' && *input != '>' && *input != '|' && *input != '"' && !isspace(*input) && *input != '\0')
       {
-        
-        //check for escape sequence conditions
-        if(*input == '\\'){
-          //skip the escape character
+
+        // check for escape sequence conditions
+        if (*input == '\\' && (*(input + 1) == 'n' ||
+                               *(input + 1) == 'r' ||
+                               *(input + 1) == 't' ||
+                               *(input + 1) == '\"' ||
+                               *(input + 1) == '\\' ||
+                               *(input + 1) == ' ' ||
+                               *(input + 1) == '|' ||
+                               *(input + 1) == '>' ||
+                               *(input + 1) == '<'))
+        {
+          // skip the escape character
           input++;
 
           // Variable to hold escape character
           char escape_char[2] = {'\0'};
 
-          switch(*input){
-            case 'n': escape_char[0] = '\n'; break;
-            case 'r': escape_char[0] = '\r'; break;
-            case 't': escape_char[0] = '\t'; break;
-            case '\"': escape_char[0] = '\"'; break;
-            case '\\': escape_char[0] = '\\'; break;
-            // case ' ': escape_char[0] = ' '; break;
-            // case '|': escape_char[0] = '|'; break;
-            // case '>': escape_char[0] = '>'; break;
-            // case '<': escape_char[0] = '<'; break;
-            default: escape_char[0] = *input;
-
+          switch (*input)
+          {
+          case 'n':
+            escape_char[0] = '\n';
+            break;
+          case 'r':
+            escape_char[0] = '\r';
+            break;
+          case 't':
+            escape_char[0] = '\t';
+            break;
+          // case '\"': escape_char[0] = '\"'; break;
+          // case '\\': escape_char[0] = '\\'; break;
+          // case ' ': escape_char[0] = ' '; break;
+          // case '|': escape_char[0] = '|'; break;
+          // case '>': escape_char[0] = '>'; break;
+          // case '<': escape_char[0] = '<'; break;
+          default: // handle \" \\ space | > <
+            escape_char[0] = *input;
           }
-           strncat(word, escape_char, 1); 
-
-        }else{
-          strncat(word, input, 1);   
+          strncat(word, escape_char, 1);
+        }
+        else
+        {
+          strncat(word, input, 1);
         }
         input++;
         len++;
 
-        //if the capacity is about to be exceeded, double the capacity
-        if (len == (capacity - 1)){
-          capacity*=2;
+        // if the capacity is about to be exceeded, double the capacity
+        if (len == (capacity - 1))
+        {
+          capacity *= 2;
           word = (char *)realloc(word, capacity);
+          assert(word);
         }
-       
       }
 
       token.type = TOK_WORD;
@@ -290,12 +323,12 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
 
   return tokens;
 
-error_handling:
+  // error_handling:
   // invalid character, return with an error message
   // snprintf(errmsg, errmsg_sz, "Position %li: unexpected character %s", pos, invalid_char);
-  TOK_free(tokens);
-  tokens = NULL;
-  return NULL;
+  // TOK_free(tokens);
+  // tokens = NULL;
+  // return NULL;
 }
 
 // Documented in .h file
@@ -357,7 +390,7 @@ void TOK_print(CList tokens)
     return;
   }
 
-  CL_foreach(tokens, TOK_print_callback, "Element");
+  CL_foreach(tokens, TOK_print_callback, "Token");
 }
 
 void TOK_free_callback(int pos, CListElementType token, void *cb_data)
@@ -371,6 +404,12 @@ void TOK_free_callback(int pos, CListElementType token, void *cb_data)
 void TOK_free(CList tokens)
 {
 
+  // tokens is NULL
+  if (tokens == NULL)
+  {
+    return;
+  }
+
   // free the words
   CL_foreach(tokens, TOK_free_callback, NULL);
 
@@ -378,112 +417,111 @@ void TOK_free(CList tokens)
   CL_free(tokens);
 }
 
-int main()
-{
+// int main()
+// {
 
-  char errmsg[128];
+//   char errmsg[128];
 
-  CList tokens = NULL;
+//   CList tokens = NULL;
 
-  // echo a b
-  tokens = TOK_tokenize_input("echo a b", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+//   // echo a b
+//   tokens = TOK_tokenize_input("\\", errmsg, sizeof(errmsg));
+//   // Happy path
+//   TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+//   // error
+//   printf("%s \n", errmsg);
+//   TOK_free(tokens);
 
-  // echo a\ b
-  tokens = TOK_tokenize_input("echo a\\ b", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo a\ b
+  // tokens = TOK_tokenize_input("echo a\\ b", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo "a b"
-  tokens = TOK_tokenize_input("echo \"a b\"", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo "a b"
+  // tokens = TOK_tokenize_input("echo \"a b\"", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo a\\ b
-  tokens = TOK_tokenize_input("echo a\\\\ b", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo a\\ b
+  // tokens = TOK_tokenize_input("echo a\\\\ b", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo hello|grep "ell"
-  tokens = TOK_tokenize_input("echo hello|grep \"ell\"", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo hello|grep "ell"
+  // tokens = TOK_tokenize_input("echo hello|grep \"ell\"", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo hello\|grep "ell"
-  tokens = TOK_tokenize_input("echo hello\\|grep \"ell\"", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo hello\|grep "ell"
+  // tokens = TOK_tokenize_input("echo hello\\|grep \"ell\"", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo boo >out_file
-  tokens = TOK_tokenize_input("echo boo>out_file", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo boo >out_file
+  // tokens = TOK_tokenize_input("echo boo>out_file", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo"boo">out_file
-  tokens = TOK_tokenize_input("echo\"boo\">out_file", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo"boo">out_file
+  // tokens = TOK_tokenize_input("echo\"boo\">out_file", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // no input
-  tokens = TOK_tokenize_input("", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // no input
+  // tokens = TOK_tokenize_input("", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo "hello | grep"
-  tokens = TOK_tokenize_input("hello | grep", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo "hello | grep"
+  // tokens = TOK_tokenize_input("hello | grep", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-  // echo a"b c"
-  tokens = TOK_tokenize_input("a\"b c\"", errmsg, sizeof(errmsg));
-  // Happy path
-  TOK_print(tokens);
+  // // echo a"b c"
+  // tokens = TOK_tokenize_input("a\"b\\nc\"", errmsg, sizeof(errmsg));
+  // // Happy path
+  // TOK_print(tokens);
 
-  // error
-  printf("%s \n", errmsg);
-  TOK_free(tokens);
+  // // error
+  // printf("%s \n", errmsg);
+  // TOK_free(tokens);
 
-
-  return 0;
-}
+//   return 0;
+// }

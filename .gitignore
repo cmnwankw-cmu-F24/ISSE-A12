@@ -4,7 +4,8 @@
 # Executables and dependables
 plaidsh
 tk
-
+expr_tree.c
+expr_tree.h
 # Test
 setup_playground.sh
 plaidsh_test.py
