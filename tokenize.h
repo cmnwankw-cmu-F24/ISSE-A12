@@ -10,7 +10,7 @@
 #ifndef _TOKENIZE_H_
 #define _TOKENIZE_H_
 
-#include "clist.h"
+#include "tlist.h"
 #include "token.h"
 #include <stddef.h>
 
@@ -39,7 +39,7 @@ const char *TT_to_str(TokenType tt);
  * 
  *   It is up to the caller to call CL_free on the returned list.
  */
-CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz);
+TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz);
 
 
 
@@ -53,7 +53,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz);
  * Returns: The TokenType for the next token, or TOK_END if the list
  *   is empty.
  */
-TokenType TOK_next_type(CList tokens);
+TokenType TOK_next_type(TList tokens);
 
 
 /*
@@ -64,7 +64,7 @@ TokenType TOK_next_type(CList tokens);
  * 
  * Returns: The next token.
  */
-Token TOK_next(CList tokens);
+Token TOK_next(TList tokens);
 
 
 /*
@@ -75,7 +75,7 @@ Token TOK_next(CList tokens);
  * 
  * Returns: None
  */
-void TOK_consume(CList tokens);
+void TOK_consume(TList tokens);
 
 
 /*
@@ -86,8 +86,8 @@ void TOK_consume(CList tokens);
  * 
  * Returns: None
  */
-void TOK_print(CList tokens);
+void TOK_print(TList tokens);
 
-void TOK_free(CList tokens);
+void TOK_free(TList tokens);
 
 #endif /* _TOKENIZE_H_ */

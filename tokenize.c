@@ -13,7 +13,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "clist.h"
+#include "tlist.h"
 #include "tokenize.h"
 #include "token.h"
 
@@ -39,67 +39,10 @@ const char *TT_to_str(TokenType tt)
   __builtin_unreachable();
 }
 
-char *handleEscapeSequences(const char *input)
-{
-  char *result = malloc(2048); // Allocate enough memory
-  if (!result)
-    return NULL; // Handle memory allocation failure
-
-  const char *src = input;
-  char *dst = result;
-
-  while (*src)
-  {
-    if (*src == '\\')
-    { // Check for escape character
-      src++;
-      switch (*src)
-      {
-      case 'n':
-        *dst++ = '\n';
-        break;
-      case 'r':
-        *dst++ = '\r';
-        break;
-      case 't':
-        *dst++ = '\t';
-        break;
-      case '\"':
-        *dst++ = '\"';
-        break;
-      case '\\':
-        *dst++ = '\\';
-        break;
-      case ' ':
-        *dst++ = ' ';
-        break;
-      case '|':
-        *dst++ = '|';
-        break;
-      case '<':
-        *dst++ = '<';
-        break;
-      case '>':
-        *dst++ = '>';
-        break;
-      default:
-        *dst++ = *src; // If it's not a recognized escape sequence, copy as is
-      }
-    }
-    else
-    {
-      *dst++ = *src;
-    }
-    src++;
-  }
-  *dst = '\0'; // Null terminate the result string
-  return result;
-}
-
 // Documented in .h file
-CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
+TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
 {
-  CList tokens = CL_new();
+  TList tokens = TL_new();
 
   size_t pos = 0;
   // char *invalid_char = NULL;
@@ -120,7 +63,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       token.type = TOK_LESSTHAN;
       token.word = NULL;
 
-      CL_append(tokens, token);
+      TL_append(tokens, token);
       pos++;
       input++;
     }
@@ -129,7 +72,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       token.type = TOK_GREATERTHAN;
       token.word = NULL;
 
-      CL_append(tokens, token);
+      TL_append(tokens, token);
       pos++;
       input++;
     }
@@ -138,7 +81,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       token.type = TOK_PIPE;
       token.word = NULL;
 
-      CL_append(tokens, token);
+      TL_append(tokens, token);
       pos++;
       input++;
     }
@@ -227,10 +170,15 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         return NULL;
       }
 
-      token.type = TOK_QUOTED_WORD;
-      token.word = word;
+      if (input - start > 1)
+      {
+        token.type = TOK_QUOTED_WORD;
+        token.word = word;
 
-      CL_append(tokens, token);
+        TL_append(tokens, token);
+      }else{
+        free(word);
+      }
 
       pos += (input - start);
 
@@ -310,7 +258,7 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       token.type = TOK_WORD;
       token.word = word;
 
-      CL_append(tokens, token);
+      TL_append(tokens, token);
 
       pos += (input - start);
     }
@@ -332,25 +280,25 @@ CList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
 }
 
 // Documented in .h file
-TokenType TOK_next_type(CList tokens)
+TokenType TOK_next_type(TList tokens)
 {
   // return the next token type or token type at the head of the list
-  return CL_nth(tokens, 0).type;
+  return TL_nth(tokens, 0).type;
 }
 
 // Documented in .h file
-Token TOK_next(CList tokens)
+Token TOK_next(TList tokens)
 {
 
   // return the next token or token at the head of the list
-  return CL_nth(tokens, 0);
+  return TL_nth(tokens, 0);
 }
 
 // Documented in .h file
-void TOK_consume(CList tokens)
+void TOK_consume(TList tokens)
 {
   // pop the head node
-  CL_pop(tokens);
+  TL_pop(tokens);
 
   return;
 }
@@ -370,7 +318,7 @@ void TOK_consume(CList tokens)
  *
  * Returns - None
  */
-void TOK_print_callback(int pos, CListElementType token, void *cb_data)
+void TOK_print_callback(int pos, TListElementType token, void *cb_data)
 {
   if (token.type == TOK_WORD || token.type == TOK_QUOTED_WORD)
   {
@@ -383,17 +331,17 @@ void TOK_print_callback(int pos, CListElementType token, void *cb_data)
 }
 
 // Documented in .h file
-void TOK_print(CList tokens)
+void TOK_print(TList tokens)
 {
   if (tokens == NULL)
   {
     return;
   }
 
-  CL_foreach(tokens, TOK_print_callback, "Token");
+  TL_foreach(tokens, TOK_print_callback, "Token");
 }
 
-void TOK_free_callback(int pos, CListElementType token, void *cb_data)
+void TOK_free_callback(int pos, TListElementType token, void *cb_data)
 {
   if (token.type == TOK_QUOTED_WORD || token.type == TOK_WORD)
   {
@@ -401,7 +349,7 @@ void TOK_free_callback(int pos, CListElementType token, void *cb_data)
   }
 }
 
-void TOK_free(CList tokens)
+void TOK_free(TList tokens)
 {
 
   // tokens is NULL
@@ -411,10 +359,10 @@ void TOK_free(CList tokens)
   }
 
   // free the words
-  CL_foreach(tokens, TOK_free_callback, NULL);
+  TL_foreach(tokens, TOK_free_callback, NULL);
 
   // before freeing the list
-  CL_free(tokens);
+  TL_free(tokens);
 }
 
 // int main()
@@ -433,95 +381,95 @@ void TOK_free(CList tokens)
 //   printf("%s \n", errmsg);
 //   TOK_free(tokens);
 
-  // // echo a\ b
-  // tokens = TOK_tokenize_input("echo a\\ b", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo a\ b
+// tokens = TOK_tokenize_input("echo a\\ b", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo "a b"
-  // tokens = TOK_tokenize_input("echo \"a b\"", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo "a b"
+// tokens = TOK_tokenize_input("echo \"a b\"", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo a\\ b
-  // tokens = TOK_tokenize_input("echo a\\\\ b", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo a\\ b
+// tokens = TOK_tokenize_input("echo a\\\\ b", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo hello|grep "ell"
-  // tokens = TOK_tokenize_input("echo hello|grep \"ell\"", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo hello|grep "ell"
+// tokens = TOK_tokenize_input("echo hello|grep \"ell\"", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo hello\|grep "ell"
-  // tokens = TOK_tokenize_input("echo hello\\|grep \"ell\"", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo hello\|grep "ell"
+// tokens = TOK_tokenize_input("echo hello\\|grep \"ell\"", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo boo >out_file
-  // tokens = TOK_tokenize_input("echo boo>out_file", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo boo >out_file
+// tokens = TOK_tokenize_input("echo boo>out_file", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo"boo">out_file
-  // tokens = TOK_tokenize_input("echo\"boo\">out_file", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo"boo">out_file
+// tokens = TOK_tokenize_input("echo\"boo\">out_file", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // no input
-  // tokens = TOK_tokenize_input("", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // no input
+// tokens = TOK_tokenize_input("", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo "hello | grep"
-  // tokens = TOK_tokenize_input("hello | grep", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo "hello | grep"
+// tokens = TOK_tokenize_input("hello | grep", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
-  // // echo a"b c"
-  // tokens = TOK_tokenize_input("a\"b\\nc\"", errmsg, sizeof(errmsg));
-  // // Happy path
-  // TOK_print(tokens);
+// // echo a"b c"
+// tokens = TOK_tokenize_input("a\"b\\nc\"", errmsg, sizeof(errmsg));
+// // Happy path
+// TOK_print(tokens);
 
-  // // error
-  // printf("%s \n", errmsg);
-  // TOK_free(tokens);
+// // error
+// printf("%s \n", errmsg);
+// TOK_free(tokens);
 
 //   return 0;
 // }

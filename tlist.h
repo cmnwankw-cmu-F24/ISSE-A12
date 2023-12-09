@@ -7,22 +7,23 @@
  *
  */
 
-#ifndef _CLIST_H_
-#define _CLIST_H_
+#ifndef _TLIST_H_
+#define _TLIST_H_
 
 
 #include <stdbool.h>
+#include "token.h"
 
 // struct _clist is defined in .c file
-typedef struct _clist *CList;
+typedef struct _tlist *TList;
 
 // The element type for this list. It should be possible to change the
 // list type simply by changing this typedef and the definition for
 // INVALID_RETURN
-typedef const char * CListElementType;
+typedef Token TListElementType;
 
 // Used to indicate an error on some functions
-#define INVALID_RETURN NULL
+#define INVALID_RETURN ((TListElementType) {TOK_END})
 
 
 
@@ -33,7 +34,7 @@ typedef const char * CListElementType;
  * 
  * Returns: The new list
  */
-CList CL_new();
+TList TL_new();
 
 
 /*
@@ -44,7 +45,7 @@ CList CL_new();
  * 
  * Returns: None
  */
-void CL_free(CList list);
+void TL_free(TList list);
 
 
 
@@ -56,18 +57,7 @@ void CL_free(CList list);
  * 
  * Returns: The length of the list, or 0 if list is empty
  */
-int CL_length(CList list);
-
-
-/*
- * Print the list
- *
- * Parameters:
- *   list     The list
- * 
- * Returns: None
- */
-void CL_print(CList list);
+int TL_length(TList list);
 
 
 /*
@@ -79,7 +69,7 @@ void CL_print(CList list);
  * 
  * Returns: None
  */
-void CL_push(CList list, CListElementType element);
+void TL_push(TList list, TListElementType element);
 
 
 /*
@@ -91,7 +81,7 @@ void CL_push(CList list, CListElementType element);
  * 
  * Returns: The popped item
  */
-CListElementType CL_pop(CList list);
+TListElementType TL_pop(TList list);
 
 
 /*
@@ -103,7 +93,7 @@ CListElementType CL_pop(CList list);
  * 
  * Returns: None
  */
-void CL_append(CList list, CListElementType element);
+void TL_append(TList list, TListElementType element);
 
 
 /*
@@ -127,7 +117,7 @@ void CL_append(CList list, CListElementType element);
  * 
  * Returns: The requested element, or INVALID_RETURN if no element was found.
  */
-CListElementType CL_nth(CList list, int pos);
+TListElementType TL_nth(TList list, int pos);
 
 
 /*
@@ -153,7 +143,7 @@ CListElementType CL_nth(CList list, int pos);
  * 
  * Returns: true if the operation was successful, false otherwise
  */
-bool CL_insert(CList list, CListElementType element, int pos);
+bool TL_insert(TList list, TListElementType element, int pos);
 
 
 /*
@@ -178,7 +168,7 @@ bool CL_insert(CList list, CListElementType element, int pos);
  * Returns: The element that was removed, or INVALID_RETURN if no
  *   element was removed.
  */
-CListElementType CL_remove(CList list, int pos);
+TListElementType TL_remove(TList list, int pos);
 
 
 /*
@@ -193,23 +183,7 @@ CListElementType CL_remove(CList list, int pos);
  * 
  * Returns:  A new list, which is a copy of the argument.
  */
-CList CL_copy(CList list);
-
-
-/*
- * Insert a new element into its proper position within a sorted
- * list. Note it is up to the caller to ensure that the list is sorted
- * prior to a call to CL_insert_sorted.
- * 
- * Sorting is done following the rules for the strcmp function.
- *
- * Parameters:
- *   list     The list
- *   element  The element to insert
- * 
- * Returns: The position the element was inserted into
- */
-int CL_insert_sorted(CList list, CListElementType element);
+TList TL_copy(TList list);
 
 
 /*
@@ -226,26 +200,8 @@ int CL_insert_sorted(CList list, CListElementType element);
  * 
  * Returns: None
  */
-void CL_join(CList list1, CList list2);
+void TL_join(TList list1, TList list2);
 
-/*
- *
- * A legacy Implementation of the join function 
- * Join (concatenate) two lists. The contents of list2 are appended
- * to list1. After this operation, list2 will still exist, but it will
- * be empty (length == 0).
- * 
- * Example: If list1 = A B C D and list2 = X Y Z, after CL_join
- * returns, list1 will contain A B C D X Y Z and list2 will be empty.
- *
- * Parameters:
- *   list1     First list, which will grow in size
- *   list2     Second list, which will be destroyed.
- * 
- * Returns: None
- */
-
-void CL_join_legacy(CList list1, CList list2);
 
 
 /*
@@ -258,10 +214,10 @@ void CL_join_legacy(CList list1, CList list2);
  * 
  * Returns: None
  */
-void CL_reverse(CList list);
+void TL_reverse(TList list);
 
 
-typedef void (*CL_foreach_callback)(int pos, CListElementType element, void *cb_data);
+typedef void (*TL_foreach_callback)(int pos, TListElementType token, void *cb_data);
 
 /*
  * Iterate through the list; call the user-specified callback function
@@ -276,8 +232,8 @@ typedef void (*CL_foreach_callback)(int pos, CListElementType element, void *cb_
  * 
  * Returns: None
  */
-void CL_foreach(CList list, CL_foreach_callback callback, void *cb_data);
+void TL_foreach(TList list, TL_foreach_callback callback, void *cb_data);
 
 
 
-#endif /* _CLIST_H_ */
+#endif /* _TLIST_H_ */

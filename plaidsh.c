@@ -11,7 +11,7 @@
 #include <readline/history.h>
 #include <stdbool.h>
 
-#include "clist.h"
+#include "tlist.h"
 #include "tokenize.h"
 #include "token.h"
 
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 
         // printf("%s\n", input);
 
-        CList tokens = TOK_tokenize_input(input, errmsg, sizeof(errmsg));
+        TList tokens = TOK_tokenize_input(input, errmsg, sizeof(errmsg));
 
         // uncomment for more debug info
         TOK_print(tokens);
