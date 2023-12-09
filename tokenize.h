@@ -90,4 +90,6 @@ void TOK_print(TList tokens);
 
 void TOK_free(TList tokens);
 
+const char* TOK_next_word(TList tokens);
+
 #endif /* _TOKENIZE_H_ */

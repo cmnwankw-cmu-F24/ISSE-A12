@@ -10,6 +10,7 @@
 #define _PIPE_TREE_H_
 
 #include <stdio.h>
+#include "clist.h"
 
 typedef struct _pipe_tree_node *PipeTree;
 
@@ -113,5 +114,7 @@ int PT_evaluate(PipeTree tree);
  * \0 terminator.
  */
 size_t PT_tree2string(PipeTree tree, char *buf, size_t buf_sz);
+
+int PT_set_args(PipeTree tree, const char * arg);
 
 #endif /* _PIPE_TREE_H_ */

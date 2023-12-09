@@ -287,6 +287,13 @@ TokenType TOK_next_type(TList tokens)
 }
 
 // Documented in .h file
+const char* TOK_next_word(TList tokens)
+{
+  // return the next token type or token type at the head of the list
+  return TL_nth(tokens, 0).word;
+}
+
+// Documented in .h file
 Token TOK_next(TList tokens)
 {
 

@@ -165,13 +165,13 @@ TListElementType TL_pop(TList list)
 {
   // assert(list); //assert that the list is valid
   if(list == NULL){
-    return INVALID_RETURN;
+    return INVALID;
   }
   struct _tl_node *popped_node = list->head; //get a reference to the head of the linkedlist
 
   //if the head is NULL return INVALID_RETURN
   if (popped_node == NULL)
-    return INVALID_RETURN;
+    return INVALID;
 
   TListElementType ret = popped_node->element; //get a reference to the element in the head 
 
@@ -226,12 +226,12 @@ TListElementType TL_nth(TList list, int pos)
 {
   // assert(list); // assert that the list is valid
   if(list == NULL){
-    return INVALID_RETURN;
+    return INVALID;
   }
 
   // Validate that pos is within the range of the list
   if(!(pos >= -(list->length) && pos <= (list->length-1))){
-    return INVALID_RETURN;
+    return INVALID;
   }
 
 
@@ -251,7 +251,7 @@ TListElementType TL_nth(TList list, int pos)
   }
 
   // if the node is not found return, INVALID_RETURN 
-  return INVALID_RETURN;
+  return INVALID;
 }
 
 
@@ -308,12 +308,12 @@ TListElementType TL_remove(TList list, int pos)
 {
   // assert(list); // assert that the list is valid
   if(list == NULL){
-    return INVALID_RETURN;
+    return INVALID;
   }
 
   //if not within the valid range for insertion, return INVALID_RETURN
   if(!(pos >= -(list->length) && pos <= (list->length-1))){
-    return INVALID_RETURN;
+    return INVALID;
   }
 
   // if pos is negative, get the positive equivalent
@@ -348,7 +348,7 @@ TListElementType TL_remove(TList list, int pos)
     num++;
   }
  
-  return INVALID_RETURN;
+  return INVALID;
 }
 
 

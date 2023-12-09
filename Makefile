@@ -5,7 +5,7 @@ LIBS= -lreadline
 
 all: $(TARGETS)
 
-plaidsh:  clist.h clist.c tlist.h tlist.c token.h tokenize.h tokenize.c pipeline.h pipeline.c plaidsh.c
+plaidsh:  clist.h clist.c tlist.h tlist.c token.h tokenize.h tokenize.c pipeline.h pipeline.c parse.h parse.c plaidsh.c
 	gcc $(CFLAGS) $^ $(LIBS) -o $@
 
 

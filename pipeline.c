@@ -18,6 +18,8 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <pwd.h>
 
 #include "pipeline.h"
@@ -280,6 +282,183 @@ int executeCommand(char *command, char *const *args)
   }
 }
 
+int handleRedirectInput(PipeTree tree, char *filePath)
+{
+  int ifd;
+  pid_t pid;
+  int status;
+
+  // Open the input filePath
+  const int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
+  ifd = open(filePath, O_RDONLY, mode);
+  if (ifd == -1)
+  {
+    perror("plaidsh: Error opening file");
+    return -1;
+  }
+
+  // Create a child process
+  pid = fork();
+  if (pid == -1)
+  {
+    perror("plaidsh: Error forking the children.");
+    return -1;
+  }
+
+  if (pid == 0)
+  {
+    // We are in the child process
+
+    // Redirect the standard input to the file
+    if (dup2(ifd, STDIN_FILENO) < 0)
+    {
+      perror("plaidsh: Error redirecting to standard input");
+      close(ifd);
+      exit(EXIT_FAILURE);
+    }
+
+    // close the file descriptor
+    close(ifd);
+
+    // Evaluate the left child
+    return PT_evaluate(tree->left);
+  }
+  else
+  {
+
+    // We are in the Parent process
+
+    // Close the output file in the parent as it's only needed in the child
+    close(ifd);
+
+    // Wait for the child process to finish
+    waitpid(pid, &status, 0);
+    return WEXITSTATUS(status);
+  }
+}
+
+int handleRedirectOutput(PipeTree tree, char *filePath)
+{
+  int ofd;
+  pid_t pid;
+  int status;
+
+  const int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
+  ofd = open(filePath, O_WRONLY | O_CREAT | O_TRUNC, mode);
+  if (ofd == -1)
+  {
+    perror("plaidsh: Error opening file");
+    return -1;
+  }
+
+  // Create a child process
+  pid = fork();
+  if (pid == -1)
+  {
+    perror("plaidsh: Error forking the child.");
+    return -1;
+  }
+
+  if (pid == 0)
+  {
+    // We are in the child process
+
+    // Redirect the standard input to the file
+    if (dup2(ofd, STDOUT_FILENO) < 0)
+    {
+      perror("plaidsh: Error redirecting to standard input");
+      close(ofd);
+      exit(EXIT_FAILURE);
+    }
+
+    // close the file descriptor
+    close(ofd);
+
+    // Evaluate the left child
+    return PT_evaluate(tree->left);
+  }
+  else
+  {
+
+    // We are in the Parent process
+
+    // Close the output file in the parent as it's only needed in the child
+    close(ofd);
+
+    // Wait for the child process to finish
+    waitpid(pid, &status, 0);
+    return WEXITSTATUS(status);
+  }
+}
+
+int handlePipe(PipeTree tree)
+{
+  int pipefd[2];
+  pid_t leftPid, rightPid;
+
+  if (pipe(pipefd) == -1)
+  {
+    perror("plaidsh: Error creating pipe");
+    return -1;
+  }
+
+  leftPid = fork();
+  if (leftPid == -1)
+  {
+    perror("plaidsh: Error forking the child");
+    return -1;
+  }
+  else if (leftPid == 0)
+  {
+    // Left child writes to pipe
+
+    close(pipefd[0]); // close the unused read end
+
+    // Redirect the standardout to the write end of the pipe
+    if (dup2(pipefd[1], STDOUT_FILENO) == -1)
+    {
+      perror("plaidsh: Error redirecting pipe write end to standard out");
+      return -1;
+    }
+
+    // Close the write end
+    close(pipefd[1]);
+
+    PT_evaluate(tree->left);
+    exit(EXIT_SUCCESS);
+  }
+
+  rightPid = fork();
+  if (rightPid == -1)
+  {
+    perror("plaidsh: Error forking the child");
+    return -1;
+  }
+  else if (rightPid == 0)
+  {
+    // Right child reads from the pipe
+    close(pipefd[1]);
+    if (dup2(pipefd[0], STDIN_FILENO) == -1)
+    {
+      perror("plaidsh: Error forking the child");
+      return -1;
+    }
+
+    close(pipefd[0]); // close the read end of the pipe
+
+    PT_evaluate(tree->right);
+    exit(EXIT_SUCCESS);
+  }
+
+  // Parent process
+  close(pipefd[0]);
+  close(pipefd[1]);
+  waitpid(leftPid, NULL, 0);
+  waitpid(rightPid, NULL, 0);
+
+  return 0;
+}
+
 // Documented in .h file
 int PT_evaluate(PipeTree tree)
 {
@@ -300,10 +479,22 @@ int PT_evaluate(PipeTree tree)
     args[size + 1] = NULL;
     return executeCommand(tree->command, (char *const *)args);
   }
-  else
+  else if (tree->type == CMD_LESS || tree->type == CMD_GREAT)
   {
-    return 0;
+    char *file = tree->right->command;
+
+    if (tree->type == CMD_LESS)
+    {
+      return handleRedirectInput(tree, file);
+    }
+    return handleRedirectOutput(tree, file);
   }
+  else if (tree->type == CMD_PIPE)
+  {
+    return handlePipe(tree);
+  }
+
+  return -1;
 }
 
 /*
@@ -340,7 +531,6 @@ static void append_node_to_buf(PipeTree tree, char *buf, size_t buf_sz)
     {
       safe_strcat(buf, " ", buf_sz);
       safe_strcat(buf, (char *)CL_nth(tree->args, i), buf_sz);
-     
     }
   }
 }
@@ -396,14 +586,23 @@ size_t PT_tree2string(PipeTree tree, char *buf, size_t buf_sz)
   return num_of_char_added; // return the num of char added
 }
 
-int main()
-{
+int PT_set_args(PipeTree tree, const char * arg){
+  if(tree->args == NULL){
+    tree->args = CL_new();
+  }
 
-  const char cmd[] = "sed";
-  const char *args[] = {"-e", "\"s/^/Written by /\"", NULL};
-  char buf[128];
+  CL_append(tree->args, arg);
+  return 0;
+}
 
-  PipeTree pip = PT_word(cmd, args);
+// int main()
+// {
+
+//   const char cmd[] = "cat";
+//   const char *args1[] = {"maribu.txt", NULL};
+//   char buf[128];
+
+//   PipeTree pip = PT_word(cmd, args1);
 
   // pip = PT_node(CMD_LESS, pip, NULL);
 
@@ -411,20 +610,20 @@ int main()
   // PT_tree2string(pip, buf, 128);
   // printf("%s \n.", buf);
 
- 
+//   const char cmd2[] = "grep";
+//   const char *args[] = {"love", NULL};
 
-  const char cmd2[] = "author";
+//   PipeTree pip2 = PT_word(cmd2, args);
+//   // PT_tree2string(pip, buf, 128);
+//   // printf("%s \n", buf);
 
-  PipeTree pip2 = PT_word(cmd2, NULL);
-    // PT_tree2string(pip, buf, 128);
-  // printf("%s \n", buf);
+//   // ret = PT_evaluate(pip);
 
-  // ret = PT_evaluate(pip);
+//   pip = PT_node(CMD_PIPE, pip, pip2);
+//   PT_tree2string(pip, buf, 128);
+//   printf("%s \n", buf);
+//   int ret = PT_evaluate(pip);
+//   PT_free(pip);
 
-  pip = PT_node(CMD_PIPE, pip2, pip);
-  PT_tree2string(pip, buf, 128);
-  printf("%s \n", buf);
-  PT_free(pip);
-
-  return 0;
-}
+//   return 0;
+// }

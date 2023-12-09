@@ -23,7 +23,7 @@ typedef struct _tlist *TList;
 typedef Token TListElementType;
 
 // Used to indicate an error on some functions
-#define INVALID_RETURN ((TListElementType) {TOK_END})
+#define INVALID ((TListElementType) {TOK_END})
 
 
 
