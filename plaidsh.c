@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 
         // uncomment for more debug info
         // TOK_print(tokens);
+        // printf("sectioning things");
 
         if (tokens == NULL)
         {
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
 
         PipeTree tree = Parse(tokens, errmsg, sizeof(errmsg));
 
+
         // PT_tree2string(tree, errmsg2, sizeof(errmsg2));
         // printf("%s", errmsg2);
 
@@ -69,6 +71,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "%s\n", errmsg);
             goto loop_end;
         }
+
         PT_evaluate(tree);
         goto loop_end;
 

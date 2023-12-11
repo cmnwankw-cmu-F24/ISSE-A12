@@ -142,7 +142,7 @@ void PT_free(PipeTree tree)
   else if (tree->type == WORD)
   {
     // free the memory for command
-    free(tree->command);
+    free((void *) tree->command);
     tree->command = NULL;
 
     // free the linkedlist, if args is not NULL
@@ -591,7 +591,7 @@ int PT_set_args(PipeTree tree, const char * arg){
     tree->args = CL_new();
   }
 
-  CL_append(tree->args, arg);
+  CL_append(tree->args, strdup(arg));
   return 0;
 }
 

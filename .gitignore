@@ -6,6 +6,10 @@ plaidsh
 tk
 p
 Test
+simple.sh
+*.log
+Plaid Shell Playground
+*.gch
 
 # Test
 setup_playground.sh

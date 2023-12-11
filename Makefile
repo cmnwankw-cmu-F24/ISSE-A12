@@ -1,6 +1,6 @@
 CFLAGS=-Wall -Werror -g -fsanitize=address
 TARGETS=plaidsh
-LIBS= -lreadline 
+LIBS= -lreadline -lasan
 
 
 all: $(TARGETS)

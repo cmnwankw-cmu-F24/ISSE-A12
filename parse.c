@@ -48,7 +48,7 @@ static PipeTree pipe(TList tokens, char *errmsg, size_t errmsg_sz)
 
     TOK_consume(tokens);
 
-    PipeTree right = primary(tokens, errmsg, errmsg_sz);
+    PipeTree right = pipe(tokens, errmsg, errmsg_sz);
 
     if (right == NULL)
     {
@@ -88,7 +88,7 @@ static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz)
     {
       // if none, error handling
       PT_free(ret);
-      snprintf(errmsg, errmsg_sz, "Unexpected token %s", TT_to_str(TOK_next_type(tokens)));
+      snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
       return NULL;
     }
 
@@ -101,14 +101,26 @@ static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz)
     {
       PT_free(ret);
       PT_free(right);
-      snprintf(errmsg, errmsg_sz, "Unexpected token %s", TT_to_str(TOK_next_type(tokens)));
+      snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
       return NULL;
     }
 
-    if(tmp_type == TOK_LESSTHAN ){
+    if (tmp_type == TOK_LESSTHAN)
+    {
       ret = PT_node(CMD_LESS, ret, right);
-    }else{
+    }
+    else
+    {
       ret = PT_node(CMD_GREAT, ret, right);
+    }
+
+    TOK_consume(tokens);
+
+    if (TOK_next_type(tokens) == TOK_LESSTHAN || TOK_next_type(tokens) == TOK_GREATERTHAN)
+    {
+      PT_free(ret);
+      snprintf(errmsg, errmsg_sz, "Multiple redirection");
+      return NULL;
     }
   }
 
@@ -117,28 +129,28 @@ static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz)
 
 static PipeTree primary(TList tokens, char *errmsg, size_t errmsg_sz)
 {
-  
-  if(TOK_next_type(tokens) == TOK_WORD || TOK_next_type(tokens) == TOK_QUOTED_WORD){
+
+  if (TOK_next_type(tokens) == TOK_WORD || TOK_next_type(tokens) == TOK_QUOTED_WORD)
+  {
     PipeTree ret = PT_word(TOK_next_word(tokens), NULL);
     TOK_consume(tokens);
 
-
-    while(TOK_next_type(tokens) == TOK_WORD || TOK_next_type(tokens) ==TOK_QUOTED_WORD){
+    while (TOK_next_type(tokens) == TOK_WORD || TOK_next_type(tokens) == TOK_QUOTED_WORD)
+    {
       PT_set_args(ret, TOK_next_word(tokens));
 
       TOK_consume(tokens);
     }
 
     return ret;
-  }else{
-    //error handling
-    snprintf(errmsg, errmsg_sz, "Unexpected token %s", TT_to_str(TOK_next_type(tokens)));
+  }
+  else
+  {
+    // error handling
+    snprintf(errmsg, errmsg_sz, "No command specified");
     return NULL;
   }
-  
 }
-
-
 
 PipeTree Parse(TList tokens, char *errmsg, size_t errmsg_sz)
 {

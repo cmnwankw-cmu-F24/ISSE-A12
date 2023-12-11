@@ -103,15 +103,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       {
 
         // check for escape sequence conditions
-        if (*input == '\\' && (*(input + 1) == 'n' ||
-                               *(input + 1) == 'r' ||
-                               *(input + 1) == 't' ||
-                               *(input + 1) == '\"' ||
-                               *(input + 1) == '\\' ||
-                               *(input + 1) == ' ' ||
-                               *(input + 1) == '|' ||
-                               *(input + 1) == '>' ||
-                               *(input + 1) == '<'))
+        if (*input == '\\')
         {
           // skip the escape character
           input++;
@@ -133,13 +125,29 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
           case '\"':
             escape_char[0] = '\"';
             break;
-          // case '\\': escape_char[0] = '\\'; break;
-          // case ' ': escape_char[0] = ' '; break;
-          // case '|': escape_char[0] = '|'; break;
-          // case '>': escape_char[0] = '>'; break;
-          // case '<': escape_char[0] = '<'; break;
-          default: // handle \" \\ space | > <
-            escape_char[0] = *input;
+          case '\\':
+            escape_char[0] = '\\';
+            break;
+          case ' ':
+            escape_char[0] = ' ';
+            break;
+          case '|':
+            escape_char[0] = '|';
+            break;
+          case '>':
+            escape_char[0] = '>';
+            break;
+          case '<':
+            escape_char[0] = '<';
+            break;
+          default: // Illegal escape sequence
+
+            snprintf(errmsg, errmsg_sz, "Illegal escape character '%c'", *input);
+            free(word);
+            TOK_free(tokens);
+            word = NULL;
+            tokens = NULL;
+            return NULL;
           }
           strncat(word, escape_char, 1);
         }
@@ -149,6 +157,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         }
         len++;
         input++;
+        word[len] = '\0';
 
         if (len == capacity - 1)
         {
@@ -162,7 +171,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       {
         // Error, I hit the null terminator without closing
         // before the terminating " for the quoted word
-        snprintf(errmsg, errmsg_sz, "Position %li: Unterminated \"quoted word\"", pos + 1);
+        snprintf(errmsg, errmsg_sz, "Unterminated quote");
         free(word);
         TOK_free(tokens);
         word = NULL;
@@ -176,7 +185,9 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         token.word = word;
 
         TL_append(tokens, token);
-      }else{
+      }
+      else
+      {
         free(word);
       }
 
@@ -201,15 +212,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       {
 
         // check for escape sequence conditions
-        if (*input == '\\' && (*(input + 1) == 'n' ||
-                               *(input + 1) == 'r' ||
-                               *(input + 1) == 't' ||
-                               *(input + 1) == '\"' ||
-                               *(input + 1) == '\\' ||
-                               *(input + 1) == ' ' ||
-                               *(input + 1) == '|' ||
-                               *(input + 1) == '>' ||
-                               *(input + 1) == '<'))
+        if (*input == '\\')
         {
           // skip the escape character
           input++;
@@ -228,14 +231,32 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
           case 't':
             escape_char[0] = '\t';
             break;
-          // case '\"': escape_char[0] = '\"'; break;
-          // case '\\': escape_char[0] = '\\'; break;
-          // case ' ': escape_char[0] = ' '; break;
-          // case '|': escape_char[0] = '|'; break;
-          // case '>': escape_char[0] = '>'; break;
-          // case '<': escape_char[0] = '<'; break;
-          default: // handle \" \\ space | > <
-            escape_char[0] = *input;
+          case '\"':
+            escape_char[0] = '\"';
+            break;
+          case '\\':
+            escape_char[0] = '\\';
+            break;
+          case ' ':
+            escape_char[0] = ' ';
+            break;
+          case '|':
+            escape_char[0] = '|';
+            break;
+          case '>':
+            escape_char[0] = '>';
+            break;
+          case '<':
+            escape_char[0] = '<';
+            break;
+          default: // Illegal escape sequence
+
+            snprintf(errmsg, errmsg_sz, "Illegal escape character '%c'", *input);
+            free(word);
+            TOK_free(tokens);
+            word = NULL;
+            tokens = NULL;
+            return NULL;
           }
           strncat(word, escape_char, 1);
         }
@@ -245,6 +266,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         }
         input++;
         len++;
+        word[len] = '\0';
 
         // if the capacity is about to be exceeded, double the capacity
         if (len == (capacity - 1))
@@ -287,7 +309,7 @@ TokenType TOK_next_type(TList tokens)
 }
 
 // Documented in .h file
-const char* TOK_next_word(TList tokens)
+const char *TOK_next_word(TList tokens)
 {
   // return the next token type or token type at the head of the list
   return TL_nth(tokens, 0).word;
@@ -304,6 +326,9 @@ Token TOK_next(TList tokens)
 // Documented in .h file
 void TOK_consume(TList tokens)
 {
+
+  free((void *)TL_nth(tokens, 0).word);
+
   // pop the head node
   TL_pop(tokens);
 
@@ -377,7 +402,7 @@ void TOK_free(TList tokens)
 
 //   char errmsg[128];
 
-//   CList tokens = NULL;
+//   TList tokens = NULL;
 
 //   // echo a b
 //   tokens = TOK_tokenize_input("\\", errmsg, sizeof(errmsg));
@@ -470,7 +495,7 @@ void TOK_free(TList tokens)
 // TOK_free(tokens);
 
 // // echo a"b c"
-// tokens = TOK_tokenize_input("a\"b\\nc\"", errmsg, sizeof(errmsg));
+// tokens = TOK_tokenize_input("echo \\<\\|\\> | cat", errmsg, sizeof(errmsg));
 // // Happy path
 // TOK_print(tokens);
 
