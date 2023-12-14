@@ -56,11 +56,24 @@ static PipeTree pipe(TList tokens, char *errmsg, size_t errmsg_sz)
       return NULL;
     }
 
-    ret = PT_node(CMD_PIPE, ret, right);
+    ret = PT_pipe(ret, right);
   }
 
   return ret;
 }
+
+/**
+ * Parse a redirection expression
+ * 
+ * Parses a redirection expression from the token list, including the 
+ * redirection operators >, >>, < and |.
+ * 
+ * Parameter
+ *    tokens - Token list to parse 
+ *    errmsg - Error message buffer
+ *    errmsg_sz - Size of error message buffer
+ * Return A parse tree for the redirection, or NULL on error
+ */
 
 static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz)
 {
@@ -72,61 +85,120 @@ static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz)
     return NULL;
   }
 
-  // check for zero or more occurence of < or >
+  // check for occurence of < or >
   if (TOK_next_type(tokens) == TOK_LESSTHAN || TOK_next_type(tokens) == TOK_GREATERTHAN)
   {
 
-    TokenType tmp_type = TOK_next_type(tokens); // keep a reference of whether it's a < or >
-
-    // advance to the next token
-    TOK_consume(tokens);
-
-    // PipeTree left = ret; // keep a reference of the left child
-
-    // check if there is a token at the head
-    if (TOK_next_type(tokens) == TOK_END)
+    // if it is an input, update the input file
+    if (TOK_next_type(tokens) == TOK_LESSTHAN)
     {
-      // if none, error handling
-      PT_free(ret);
-      snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
-      return NULL;
-    }
+      TOK_consume(tokens);
 
-    PipeTree right = PT_word(TOK_next_word(tokens), NULL);
+      // error handling, no file name
+      if (TOK_next_type(tokens) != TOK_QUOTED_WORD && TOK_next_type(tokens) != TOK_WORD)
+      {
+        snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
+        PT_free(ret);
+        return NULL;
+      }
 
-    TOK_consume(tokens);
+      // update the node
+      setInputFiles(ret, TOK_next_word(tokens));
 
-    // the right child of a redirect should be a leaf node
-    if (TOK_next_type(tokens) == TOK_WORD || TOK_next_type(tokens) == TOK_QUOTED_WORD)
-    {
-      PT_free(ret);
-      PT_free(right);
-      snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
-      return NULL;
-    }
+      // advance the token
+      TOK_consume(tokens);
 
-    if (tmp_type == TOK_LESSTHAN)
-    {
-      ret = PT_node(CMD_LESS, ret, right);
+      // error handling, for multiple redirection
+      if (TOK_next_type(tokens) == TOK_LESSTHAN)
+      {
+        snprintf(errmsg, errmsg_sz, "Multiple redirection");
+        PT_free(ret);
+        return NULL;
+      }
+
+      // check if output file needs to be set
+      if (TOK_next_type(tokens) == TOK_GREATERTHAN)
+      {
+        TOK_consume(tokens);
+
+        // error handling, no file name
+        if (TOK_next_type(tokens) != TOK_QUOTED_WORD && TOK_next_type(tokens) != TOK_WORD)
+        {
+          snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
+          PT_free(ret);
+          return NULL;
+        }
+
+        // update the node
+        setOutputFiles(ret, TOK_next_word(tokens));
+
+        TOK_consume(tokens);
+      }
     }
     else
     {
-      ret = PT_node(CMD_GREAT, ret, right);
-    }
+      TOK_consume(tokens);
 
-    TOK_consume(tokens);
+      // error handling, no file name
+      if (TOK_next_type(tokens) != TOK_QUOTED_WORD && TOK_next_type(tokens) != TOK_WORD)
+      {
+        snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
+        PT_free(ret);
+        return NULL;
+      }
 
-    if (TOK_next_type(tokens) == TOK_LESSTHAN || TOK_next_type(tokens) == TOK_GREATERTHAN)
-    {
-      PT_free(ret);
-      snprintf(errmsg, errmsg_sz, "Multiple redirection");
-      return NULL;
+      // update the node
+      setOutputFiles(ret, TOK_next_word(tokens));
+
+      // advance the token
+      TOK_consume(tokens);
+
+      // error handling, for multiple redirection
+      if (TOK_next_type(tokens) == TOK_GREATERTHAN)
+      {
+        snprintf(errmsg, errmsg_sz, "Multiple redirection");
+        PT_free(ret);
+        return NULL;
+      }
+
+      // check if input file needs to be set
+      if (TOK_next_type(tokens) == TOK_LESSTHAN)
+      {
+        TOK_consume(tokens);
+
+        // error handling, no file name
+        if (TOK_next_type(tokens) != TOK_QUOTED_WORD && TOK_next_type(tokens) != TOK_WORD)
+        {
+          snprintf(errmsg, errmsg_sz, "Expect filename after redirection");
+          PT_free(ret);
+          return NULL;
+        }
+
+        // update the node
+        setInputFiles(ret, TOK_next_word(tokens));
+
+        TOK_consume(tokens);
+      }
     }
   }
 
   return ret;
 }
 
+
+/**
+ * Parse the primary part of an expression 
+ *
+ * This function parses the primary part of an expression from the given
+ * token list. This includes literal values, identifiers, and parenthesized 
+ * expressions.
+ *
+ * Parameters
+ *    tokens - The token list to parse
+ *    errmsg - Error message output buffer
+ *    errmsg_sz - Size of the error message buffer
+ * Returns A parse tree representing the primary expression.
+*/
 static PipeTree primary(TList tokens, char *errmsg, size_t errmsg_sz)
 {
 
@@ -152,6 +224,7 @@ static PipeTree primary(TList tokens, char *errmsg, size_t errmsg_sz)
   }
 }
 
+// Documented in the .h file
 PipeTree Parse(TList tokens, char *errmsg, size_t errmsg_sz)
 {
 

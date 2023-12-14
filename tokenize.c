@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <glob.h>
 
 #include "tlist.h"
 #include "tokenize.h"
@@ -39,18 +40,40 @@ const char *TT_to_str(TokenType tt)
   __builtin_unreachable();
 }
 
+/**
+ * Checks if a word needs glob expansion.
+ *
+ * This examines the given word and returns true if it contains
+ * glob patterns like *, ?, [] that need expansion.
+ *
+ * Parameter
+ *   word - The word to check
+ *
+ * Returns
+ *   true if globbing needed, false otherwise
+ *
+ */
+
+bool needsGlobbing(const char *word)
+{
+  // Check if the word contains '*', '?', or '[]'
+  return strchr(word, '*') || strchr(word, '?') || (strchr(word, '[') && strchr(word, ']'));
+}
+
 // Documented in .h file
 TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
 {
+  // initialize a TList of tokens
   TList tokens = TL_new();
 
   size_t pos = 0;
-  // char *invalid_char = NULL;
+
   Token token;
 
   while (*input != '\0')
   {
 
+    // Skip through spaces
     if (isspace(*input))
     {
       // advance and do nothing
@@ -60,6 +83,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
     }
     else if (*input == '<')
     {
+      // tokenize the character <
       token.type = TOK_LESSTHAN;
       token.word = NULL;
 
@@ -69,6 +93,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
     }
     else if (*input == '>')
     {
+      // tokenize the character >
       token.type = TOK_GREATERTHAN;
       token.word = NULL;
 
@@ -78,6 +103,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
     }
     else if (*input == '|')
     {
+      // tokenize the character |
       token.type = TOK_PIPE;
       token.word = NULL;
 
@@ -87,11 +113,12 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
     }
     else if (*input == '"')
     {
-      // Quoted word
-      const char *start = input; // keep a reference to the start
-      input++;
-      start = input;
+      // tokenize the quoted word
 
+      input++;                   // skip past the double quotes
+      const char *start = input; // keep a reference to the start
+
+      // initialize the start memory capacity for words and length of characters seen
       size_t capacity = 8;
       size_t len = 0;
 
@@ -99,6 +126,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       char *word = (char *)calloc(capacity, sizeof(char));
       assert(word);
 
+      // Loop through till we find a terminating douuble quotes or null terminator
       while (*input != '\0' && *input != '\"')
       {
 
@@ -140,7 +168,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
           case '<':
             escape_char[0] = '<';
             break;
-          default: // Illegal escape sequence
+          default: // Illegal escape sequence, error handling
 
             snprintf(errmsg, errmsg_sz, "Illegal escape character '%c'", *input);
             free(word);
@@ -149,16 +177,21 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
             tokens = NULL;
             return NULL;
           }
+
+          // append the character found
           strncat(word, escape_char, 1);
         }
         else
         {
+          // append the character found
           strncat(word, input, 1);
         }
+
         len++;
         input++;
         word[len] = '\0';
 
+        // if the capacity is about to be exceeded, double the capacity
         if (len == capacity - 1)
         {
           capacity *= 2;
@@ -179,6 +212,8 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         return NULL;
       }
 
+      // check that at least one character was captured
+      // in between the quotes
       if (input - start > 1)
       {
         token.type = TOK_QUOTED_WORD;
@@ -191,6 +226,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         free(word);
       }
 
+      // update the current position
       pos += (input - start);
 
       // skip past the last "
@@ -198,9 +234,11 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
     }
     else
     {
-      // Regular word
-      const char *start = input;
+      // Tokenize a regular word
 
+      const char *start = input; // keep a reference to the start
+
+      // initialize the start memory capacity for words and length of characters seen
       size_t capacity = 8;
       size_t len = 0;
 
@@ -208,6 +246,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
       char *word = (char *)calloc(capacity, sizeof(char));
       assert(word);
 
+      // Loop through till we find a terminating condition for a word
       while (*input != '<' && *input != '>' && *input != '|' && *input != '"' && !isspace(*input) && *input != '\0')
       {
 
@@ -249,7 +288,7 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
           case '<':
             escape_char[0] = '<';
             break;
-          default: // Illegal escape sequence
+          default: // Illegal escape sequence, error handling
 
             snprintf(errmsg, errmsg_sz, "Illegal escape character '%c'", *input);
             free(word);
@@ -258,10 +297,13 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
             tokens = NULL;
             return NULL;
           }
+
+          // append character found
           strncat(word, escape_char, 1);
         }
         else
         {
+          // append the character found
           strncat(word, input, 1);
         }
         input++;
@@ -277,28 +319,51 @@ TList TOK_tokenize_input(const char *input, char *errmsg, size_t errmsg_sz)
         }
       }
 
-      token.type = TOK_WORD;
-      token.word = word;
+      // check if word found needs globbing
+      if (needsGlobbing(word))
+      {
+        glob_t glob_result;
+        memset(&glob_result, 0, sizeof(glob_result)); // zero out memory
 
-      TL_append(tokens, token);
+        int result = glob(word, GLOB_TILDE, NULL, &glob_result);
+        if (result == 0)
+        {
+          // Loop through all matched file names and append
+          for (size_t i = 0; i < glob_result.gl_pathc; ++i)
+          {
+            token.type = TOK_WORD;
+            token.word = strdup(glob_result.gl_pathv[i]);
+            TL_append(tokens, token);
+          }
 
+          // free the malloc'd memory
+          free(word);
+        }
+        else
+        {
+          // no matched file found, just tokenize
+          token.type = TOK_WORD;
+          token.word = word;
+          TL_append(tokens, token);
+        }
+
+        // free malloc'd memory
+        globfree(&glob_result);
+      }
+      else
+      {
+        // word does not need globbing, just append
+        token.type = TOK_WORD;
+        token.word = word;
+        TL_append(tokens, token);
+      }
+
+      // update the current position
       pos += (input - start);
     }
   }
 
-  // uncomment to delimit the tokenizer with TOK_END
-  // token.type = TOK_END;
-  // token.word = NULL;
-  // CL_append(tokens, token);
-
   return tokens;
-
-  // error_handling:
-  // invalid character, return with an error message
-  // snprintf(errmsg, errmsg_sz, "Position %li: unexpected character %s", pos, invalid_char);
-  // TOK_free(tokens);
-  // tokens = NULL;
-  // return NULL;
 }
 
 // Documented in .h file
@@ -327,7 +392,11 @@ Token TOK_next(TList tokens)
 void TOK_consume(TList tokens)
 {
 
-  free((void *)TL_nth(tokens, 0).word);
+  if(tokens == NULL){
+    return;
+  }
+  if (TL_nth(tokens, 0).type == TOK_WORD || TL_nth(tokens, 0).type == TOK_QUOTED_WORD)
+    free((void *)TL_nth(tokens, 0).word);
 
   // pop the head node
   TL_pop(tokens);
@@ -373,6 +442,20 @@ void TOK_print(TList tokens)
   TL_foreach(tokens, TOK_print_callback, "Token");
 }
 
+/**
+ * Callback function to free token words.
+ *
+ * This is passed to TOK_free() to free the memory for
+ * any TOK_WORD or TOK_QUOTED_WORD tokens.
+ *
+ * Parameters
+ *      pos - The position of the token in the input.
+ *      token - The token to be freed.
+ *      cb_data - A pointer to custom callback data(optional, unused)
+ * Returns
+ *      None
+ */
+
 void TOK_free_callback(int pos, TListElementType token, void *cb_data)
 {
   if (token.type == TOK_QUOTED_WORD || token.type == TOK_WORD)
@@ -380,6 +463,19 @@ void TOK_free_callback(int pos, TListElementType token, void *cb_data)
     free(token.word);
   }
 }
+
+/**
+ * Free a token list and associated memory.
+ *
+ * This frees the list structure itself as well
+ * as the words allocated for any WORD or
+ * QUOTED_WORD tokens.
+ *
+ * Parameter
+ *    tokens - Token list to free
+ * Returns
+ *    None
+ */
 
 void TOK_free(TList tokens)
 {
@@ -396,112 +492,3 @@ void TOK_free(TList tokens)
   // before freeing the list
   TL_free(tokens);
 }
-
-// int main()
-// {
-
-//   char errmsg[128];
-
-//   TList tokens = NULL;
-
-//   // echo a b
-//   tokens = TOK_tokenize_input("\\", errmsg, sizeof(errmsg));
-//   // Happy path
-//   TOK_print(tokens);
-
-//   // error
-//   printf("%s \n", errmsg);
-//   TOK_free(tokens);
-
-// // echo a\ b
-// tokens = TOK_tokenize_input("echo a\\ b", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo "a b"
-// tokens = TOK_tokenize_input("echo \"a b\"", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo a\\ b
-// tokens = TOK_tokenize_input("echo a\\\\ b", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo hello|grep "ell"
-// tokens = TOK_tokenize_input("echo hello|grep \"ell\"", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo hello\|grep "ell"
-// tokens = TOK_tokenize_input("echo hello\\|grep \"ell\"", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo boo >out_file
-// tokens = TOK_tokenize_input("echo boo>out_file", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo"boo">out_file
-// tokens = TOK_tokenize_input("echo\"boo\">out_file", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // no input
-// tokens = TOK_tokenize_input("", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo "hello | grep"
-// tokens = TOK_tokenize_input("hello | grep", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-// // echo a"b c"
-// tokens = TOK_tokenize_input("echo \\<\\|\\> | cat", errmsg, sizeof(errmsg));
-// // Happy path
-// TOK_print(tokens);
-
-// // error
-// printf("%s \n", errmsg);
-// TOK_free(tokens);
-
-//   return 0;
-// }

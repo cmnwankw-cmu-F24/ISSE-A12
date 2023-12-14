@@ -17,18 +17,23 @@
 #include "parse.h"
 #include "pipeline.h"
 
+// colors
+#define BOLD_RED
+
 int main(int argc, char *argv[])
 {
     char *input = NULL;
     bool time_to_quit = false;
     char errmsg[128] = {'\0'};
     // char errmsg2[128] = {'\0'};
+    PipeTree tree = NULL;
+    TList tokens = NULL;
 
-    printf("Welcome to Plaid Shell!\n");
+    printf("\n\e[01;34mWelcome to \e[01;32mPlaid Shell!\e[01;39m\n");
 
     while (!time_to_quit)
     {
-
+        // Step 1: Read User input
         input = readline("\n\e[01;31m#?\e[00;39m ");
         if (input == NULL || strcasecmp(input, "quit") == 0)
         {
@@ -41,13 +46,8 @@ int main(int argc, char *argv[])
 
         add_history(input);
 
-        // printf("%s\n", input);
-
-        TList tokens = TOK_tokenize_input(input, errmsg, sizeof(errmsg));
-
-        // uncomment for more debug info
-        // TOK_print(tokens);
-        // printf("sectioning things");
+        // Step 2: Tokenize the user input
+        tokens = TOK_tokenize_input(input, errmsg, sizeof(errmsg));
 
         if (tokens == NULL)
         {
@@ -58,13 +58,9 @@ int main(int argc, char *argv[])
         if (TL_length(tokens) == 0)
             goto loop_end;
 
-        PipeTree tree = Parse(tokens, errmsg, sizeof(errmsg));
+        // Step 3: parse the input
+        tree = Parse(tokens, errmsg, sizeof(errmsg));
 
-
-        // PT_tree2string(tree, errmsg2, sizeof(errmsg2));
-        // printf("%s", errmsg2);
-
-        // evaluate the tree
 
         if (tree == NULL)
         {
@@ -72,6 +68,7 @@ int main(int argc, char *argv[])
             goto loop_end;
         }
 
+        // Step 4: evaluate the tree
         PT_evaluate(tree);
         goto loop_end;
 

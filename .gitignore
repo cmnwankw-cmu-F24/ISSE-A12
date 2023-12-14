@@ -10,6 +10,9 @@ simple.sh
 *.log
 Plaid Shell Playground
 *.gch
+input
+output
+glob.c
 
 # Test
 setup_playground.sh

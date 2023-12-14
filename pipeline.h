@@ -1,7 +1,7 @@
 /*
- * expr_tree.h
+ * pipeline.h
  *
- * A dynamically allocated tree to handle arbitrary expressions
+ * A dynamically allocated tree to handle arbitrary shell command expressions
  *
  * Author: Nwankwo Chukwunonso Michael
  */
@@ -10,6 +10,8 @@
 #define _PIPE_TREE_H_
 
 #include <stdio.h>
+#include <stdbool.h>
+
 #include "clist.h"
 
 typedef struct _pipe_tree_node *PipeTree;
@@ -23,40 +25,42 @@ typedef enum
   CMD_PIPE
 } PipeNodeType;
 
-/*
- * Create a value node on the tree. A value node is always a leaf.
+/**
+ * Create a new Pipetree node for a shell command.
  *
- * Parameters:
- *   value    The value for the leaf node
+ * Allocates a new Pipetree node, sets its type as WORD and sets the
+ * command and args of the nodeusing the given command and arguments,
+ * and returns the node.
  *
- * Returns:
- *   The new tree, which will consist of a single leaf node
+ * Parameters
+ *    command - Command string for this node
+ *    args - Array of argument strings
+ * Returns
+ *    New PipeTree node, NULL on failure
  *
- * It is the responsibility of the caller to call ET_free on a tree
- * that contains this leaf.
+ * It is the responsibility of the caller to call PT_free on a tree
+ * that contains this node.
  */
-PipeTree PT_word(const char* command, const char* args[]);
-
+PipeTree PT_word(const char *command, const char *args[]);
 
 /*
- * Create an interior node on tree. An interior node always represents
- * an arithmetic operation.
+ * Create an interior node on tree of CMD_PIPE type. An interior node always represents
+ * a pipeline.
  *
  * Parameters:
- *   op       The operator
- *   left     Left side of the operator
- *   right    Right side of the operator
+ *   left     Left side of the pipeline
+ *   right    Right side of the pipeline
  *
  * Returns: The new tree, which will consist of an interior node with
  *   two children.
  *
- * It is the responsibility of the caller to call ET_free on a tree
+ * It is the responsibility of the caller to call PT_free on a tree
  * that contains this leaf
  */
-PipeTree PT_node(PipeNodeType type, PipeTree left, PipeTree right);
+PipeTree PT_pipe(PipeTree left, PipeTree right);
 
 /*
- * Destroy an ExprTree, calling free() on all malloc'd memory
+ * Destroy a PipeTree, calling free() on all malloc'd memory
  *
  * Parameters:
  *   tree     The tree
@@ -92,13 +96,10 @@ int PT_depth(PipeTree tree);
  *
  * Parameters:
  *     tree The tree to compute
- *     vars A dictionary containing the variables known so far, which
- *     may be modified by this function
  *     errmsg Return space for an error message, filled in in case of error
  *     errmsg_sz The size of errmsg
  *
- * Returns: The computed value on success. If a syntax error is
- * encountered, copies an error message into errmsg and returns NaN.
+ * Returns: 0 on success and -1 otherwise
  */
 int PT_evaluate(PipeTree tree);
 
@@ -115,6 +116,81 @@ int PT_evaluate(PipeTree tree);
  */
 size_t PT_tree2string(PipeTree tree, char *buf, size_t buf_sz);
 
-int PT_set_args(PipeTree tree, const char * arg);
+/**
+ * Add new argument to a pipeline tree node's arguments.
+ *
+ * Allocates an argument list if not already present,
+ * then appends a copy of the given argument string.
+ *
+ * Parameters
+ *    tree - Pipeline node to add arg to
+ *    arg - Argument string to append
+ * Return 0 on success, non-zero on failure
+ */
+
+int PT_set_args(PipeTree tree, const char *arg);
+
+/**
+ * Set output file for a pipeline tree node.
+ *
+ * Copies the given filename to the output file
+ * pointer in the pipeline node.
+ *
+ * Parameters
+ *    tree - Pipeline tree node
+ *    out - Input filename
+ *
+ * Returns 0 on success, -1 on failure
+ */
+
+int setOutputFiles(PipeTree tree, const char *out);
+
+/**
+ * Set input file for a pipeline tree node.
+ *
+ * Copies the given filename to the input file
+ * pointer in the pipeline node.
+ *
+ * Parameters
+ *    tree - Pipeline tree node
+ *    in - Input filename
+ *
+ * Returns 0 on success, -1 on failure
+ */
+int setInputFiles(PipeTree tree, const char *in);
+
+/**
+ * Tests a pipeline represented by a PipeTree against expected values.
+ *
+ * This function checks if the provided PipeTree node matches the expected command,
+ * arguments, input file, and output file. It is used to validate that a PipeTree
+ * structure correctly represents a given command pipeline.
+ *
+ * Parameter
+ *    tree The PipeTree structure representing the command pipeline to be tested.
+ *    expected_command A string representing the expected command.
+ *    expected_args A CList of expected arguments. Each element in the list
+ *        should correspond to an argument of the command.
+ *    expected_input_file A string representing the expected input file for
+ *        redirection, or NULL if no input redirection is expected.
+ *    expected_output_file A string representing the expected output file for
+ *        redirection, or NULL if no output redirection is expected.
+ *
+ * Returns true if the PipeTree matches the expected values for the command, its
+ *         arguments, and any input/output redirection; false otherwise.
+ *
+ * NB: The function assumes that the PipeTree, expected_command, and the elements
+ *       within expected_args are properly initialized. The comparison is done only
+ *       for the first (topmost) command in the PipeTree. If the PipeTree represents
+ *       a more complex structure (like a series of piped commands), only the first
+ *       command is checked.
+ */
+bool test_pipeline(
+    PipeTree tree,
+    const char *expected_command,
+    const char ** expected_args,
+    int args_sz,
+    const char *expected_input_file,
+    const char *expected_output_file);
 
 #endif /* _PIPE_TREE_H_ */

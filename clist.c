@@ -457,47 +457,6 @@ void CL_join(CList list1, CList list2){
 
 }
 
-
-// Documented in .h file
-void CL_join_legacy(CList list1, CList list2)
-{
-  assert(list1); // assert that the list1 is valid
-  assert(list2); // assert that the list2 is valid
-
-  struct _cl_node *node = list1->head; //get a reference to the head of list1
-  struct _clist *head_copy = NULL; //initialized a _clist pointer to NULL
-
-  head_copy = CL_copy(list2); //make a copy of list2
-
-  if(node == NULL){
-  //if list1 is empty, attached the copied list to the head of list1
-    list1 -> head = head_copy -> head; //point the head of list1 to head of the copied list 
-  }else{
-  //get the tail node
-    for(; node->next != NULL; node = node -> next )
-        ;
-    node -> next = head_copy -> head;
-  }
-
-  list1 -> length = list1 -> length + list2 -> length; //update the length of list1
-    
-  struct _cl_node *free_node = list2 -> head; //get a reference to the head of list2
-
-  //free the nodes of list2
-  while(free_node != NULL){
-      list2 -> head = free_node -> next;
-      free(free_node);
-      free_node = list2 -> head;
-  }
-  list2->length = 0; //set length of list2 to 0
-  free(head_copy); //free the struct for metadata of head_copy
-  head_copy = NULL; //set the head_copy pointer to NULL
-  node = NULL; //set the node pointer to NULL
-  return;
-
-}
-
-
 // Documented in .h file
 void CL_reverse(CList list)
 {

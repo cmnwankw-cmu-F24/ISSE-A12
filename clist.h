@@ -1,9 +1,9 @@
 /*
  * clist.h
  * 
- * Linked list implementation for ISSE Assignment 5
+ * Linked list implementation
  * 
- * Author: Howdy Pierce and Nwankwo Chukwunonso Michael
+ * Author: Nwankwo Chukwunonso Michael
  *
  */
 
@@ -229,26 +229,6 @@ int CL_insert_sorted(CList list, CListElementType element);
 void CL_join(CList list1, CList list2);
 
 /*
- *
- * A legacy Implementation of the join function 
- * Join (concatenate) two lists. The contents of list2 are appended
- * to list1. After this operation, list2 will still exist, but it will
- * be empty (length == 0).
- * 
- * Example: If list1 = A B C D and list2 = X Y Z, after CL_join
- * returns, list1 will contain A B C D X Y Z and list2 will be empty.
- *
- * Parameters:
- *   list1     First list, which will grow in size
- *   list2     Second list, which will be destroyed.
- * 
- * Returns: None
- */
-
-void CL_join_legacy(CList list1, CList list2);
-
-
-/*
  * Reverse a list.  Specifically, if the original list contained 
  * A B C D (in that order), after a call to CL_reverse, the list
  * will contain D C B A.
@@ -277,7 +257,5 @@ typedef void (*CL_foreach_callback)(int pos, CListElementType element, void *cb_
  * Returns: None
  */
 void CL_foreach(CList list, CL_foreach_callback callback, void *cb_data);
-
-
 
 #endif /* _CLIST_H_ */
