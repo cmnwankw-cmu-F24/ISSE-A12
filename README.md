@@ -42,7 +42,7 @@ This will start the interactive plaid shell. Type `exit` or `quit` to exit.
 An automated test suite is included to validate the functionality. To run:
 
 ```
-make test
+./ps_test
 ```
 
 ## Clean
