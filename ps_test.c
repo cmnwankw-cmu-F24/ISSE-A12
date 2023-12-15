@@ -127,21 +127,28 @@ int test_tokenization()
     }
 
     // Test erroneous inputs
+    
+    // Illegal escape sequence in regular word
     test_assert(TOK_tokenize_input("echo \\g", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Illegal escape character 'g'") == 0);
-
+    
+    // Illegal escape sequence in quoted word
     test_assert(TOK_tokenize_input("echo \"me\\c\"", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Illegal escape character 'c'") == 0);
-
+    
+    // Unterminated quotes, in regular word
     test_assert(TOK_tokenize_input("touch \"hacker.txt", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Unterminated quote") == 0);
-
+    
+    // Unterminated quotes, in quoted word
     test_assert(TOK_tokenize_input("echo \"This is \\a test\"", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Illegal escape character 'a'") == 0);
-
+    
+    // Illegal escape character
     test_assert(TOK_tokenize_input("\\", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Illegal escape character '") == 0);
 
+    // Illegal escape character
     test_assert(TOK_tokenize_input("echo \"This is a test\\", errmsg, sizeof(errmsg)) == NULL);
     test_assert(strcasecmp(errmsg, "Illegal escape character '") == 0);
 
