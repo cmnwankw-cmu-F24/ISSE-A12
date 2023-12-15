@@ -14,24 +14,25 @@
 #include "tokenize.h"
 #include "clist.h"
 
-/*
- * Forward declarations for the functions (rules) to produce the
- * ExpressionWhizz grammar.  See the assignment writeup for the grammar.
- * Each function has the same signature, so we will document all of
- * them here.
- *
- * Parameters:
- *   tokens     List of tokens remaining to be parsed
- *   errmsg     Return space for an error message, filled in in case of error
- *   errmsg_sz  The size of errmsg
- *
- * Returns: The parsed ExprTree on success. If a parsing error is
- *   encountered, copies an error message into errmsg and returns
- *   NULL.
- */
+// static function declaration
 static PipeTree pipe(TList tokens, char *errmsg, size_t errmsg_sz);
 static PipeTree redirect(TList tokens, char *errmsg, size_t errmsg_sz);
 static PipeTree primary(TList tokens, char *errmsg, size_t errmsg_sz);
+
+
+
+/**
+ * Parse a pipe command
+ * 
+ * Parses a pipe command from the list of tokens. A pipe command has the
+ * format 'A | B' to pipe the output of A into the input of B.
+ * 
+ * Parameters
+ *  tokens - List of tokens to parse
+ *  errmsg - Error message buffer 
+ *  errmsg_sz - Size of error message buffer
+ * Return Parse tree for the full pipe command, or NULL on error
+*/
 
 static PipeTree pipe(TList tokens, char *errmsg, size_t errmsg_sz)
 {

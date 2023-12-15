@@ -336,7 +336,6 @@ static int executeCommand(char *command, char *const *args, const char *in, cons
   // Built-in commands exit, quit
   if (strcmp(command, "exit") == 0 || strcmp(command, "quit") == 0)
   {
-
     // Terminate the shell
     exit(0);
   }

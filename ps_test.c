@@ -36,96 +36,6 @@ typedef struct
 } PTest;
 
 /*
- * Returns true if tok1 and tok2 compare equally, false otherwise
- */
-// static bool test_tok_eq(Token tok1, Token tok2)
-// {
-//     if (tok1.type != tok2.type)
-//         return false;
-
-//     if (tok1.type == TOK_WORD && strcmp(tok1.word, tok2.word) != 0)
-//         return false;
-
-//     if (tok1.type == TOK_QUOTED_WORD && strcmp(tok1.word, tok2.word) != 0)
-//         return false;
-
-//     return true;
-// }
-
-// Function to create a token with a string duplicated by strdup
-// Token createToken(TokenType type, const char* str) {
-//     Token token;
-//     token.type = type;
-//     token.word = strdup(str); // Duplicate the string
-//     return token;
-// }
-
-//     Token tokens[20] = {
-//         createToken(TOK_WORD, "echo"),
-//         createToken(TOK_QUOTED_WORD, "\"Hello World\""),
-//         createToken(TOK_PIPE, NULL),
-//         createToken(TOK_WORD, "grep"),
-//         createToken(TOK_QUOTED_WORD, "\"World\""),
-//         createToken(TOK_GREATERTHAN, NULL),
-//         createToken(TOK_WORD, "output.txt"),
-//         createToken(TOK_LESSTHAN, NULL),
-//         createToken(TOK_WORD, "input.txt"),
-//         // ... add more tokens here up to 20 elements
-//         createToken(TOK_WORD, "ls"),
-//         createToken(TOK_WORD, "-l"),
-//         createToken(TOK_PIPE, NULL),
-//         createToken(TOK_WORD, "sort"),
-//         createToken(TOK_PIPE, NULL),
-//         createToken(TOK_WORD, "uniq"),
-//         createToken(TOK_PIPE, NULL),
-//         createToken(TOK_WORD, "wc"),
-//         createToken(TOK_WORD, "-l"),
-//         createToken(TOK_GREATERTHAN, NULL),
-//         createToken(TOK_WORD, "final.txt")
-//     };
-
-// const int num_tokens = sizeof(tokens) / sizeof(tokens[0]);
-
-/*
- * Tests the TOK_next_type and TOK_consume functions
- *
- * Returns: 1 if all tests pass, 0 otherwise
- */
-// int test_tok_next_consume()
-// {
-//   TList list = TL_new();
-
-//   for (int i = 0; i < num_tokens; i++)
-//   {
-//     TL_append(list, tokens[i]);
-//     test_assert(TL_length(list) == i+1);
-//     test_assert(test_tok_eq(TL_nth(list, i), tokens[i]));
-//   }
-
-//   for (int i = 0; i < num_tokens; i++)
-//   {
-//     test_assert(TOK_next_type(list) == tokens[i].type);
-//     TOK_consume(list);
-//   }
-
-//   test_assert(TL_length(list) == 0);
-
-//   test_assert(TOK_next_type(list) == TOK_END);
-//   TOK_consume(list);
-//   test_assert(TOK_next_type(list) == TOK_END);
-//   TOK_consume(list);
-//   test_assert(TOK_next_type(list) == TOK_END);
-//   TOK_consume(list);
-
-//   TL_free(list);
-//   return 1;
-
-// test_error:
-//   TL_free(list);
-//   return 0;
-// }
-
-/*
  * Tests the TOK_tokenize_input function
  *
  * Returns: 1 if all tests pass, 0 otherwise
@@ -204,16 +114,6 @@ int test_tokenization()
         list = TOK_tokenize_input(tests[i].string, errmsg, sizeof(errmsg));
         for (int t = 0; tests[i].exp_tokens[t].type != TOK_END; t++)
         {
-            // Uncomment for debugging
-            // if (TOK_next_type(list) != TOK_WORD && TOK_next_type(list) != TOK_QUOTED_WORD)
-            // {
-            //     printf("Expected: %s , got: %s\n", TT_to_str(tests[i].exp_tokens[t].type), TT_to_str(TOK_next(list).type));
-            // }
-            // else
-            // {
-            //     printf("Expected: %s = %s, got: %s = %s\n", TT_to_str(tests[i].exp_tokens[t].type), tests[i].exp_tokens[t].word, TT_to_str(TOK_next(list).type), TOK_next(list).word);
-            // }
-
             test_assert(TOK_next_type(list) == tests[i].exp_tokens[t].type);
             if (TOK_next_type(list) == TOK_WORD || TOK_next_type(list) == TOK_QUOTED_WORD)
             {
@@ -228,7 +128,6 @@ int test_tokenization()
 
     // Test erroneous inputs
     test_assert(TOK_tokenize_input("echo \\g", errmsg, sizeof(errmsg)) == NULL);
-
     test_assert(strcasecmp(errmsg, "Illegal escape character 'g'") == 0);
 
     test_assert(TOK_tokenize_input("echo \"me\\c\"", errmsg, sizeof(errmsg)) == NULL);
@@ -330,9 +229,93 @@ int test_parsing()
         PipeTree tree = Parse(tokens, errmsg, sizeof(errmsg));
         test_assert(test_pipeline(tree, test_cases[i].command, test_cases[i].args, test_cases[i].arg_sz, test_cases[i].input_file, test_cases[i].output_file));
 
-        TL_free(tokens);
+        TOK_free(tokens);
         PT_free(tree);
     }
+
+    // Test erroneous parse cases
+    TList tokens;
+    PipeTree tree;
+
+    // No file name after redirection >
+    tokens = TOK_tokenize_input("cat >", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "Expect filename after redirection") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No file name after redirection <
+    tokens = TOK_tokenize_input("less < ", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "Expect filename after redirection") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified |
+    tokens = TOK_tokenize_input("|", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified >
+    tokens = TOK_tokenize_input(">", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified <
+    tokens = TOK_tokenize_input("|", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // Multiple redirections cat > cat >
+    tokens = TOK_tokenize_input("cat > cat >", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "Multiple redirection") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // Multiple redirections echo < echo <
+    tokens = TOK_tokenize_input("cat > cat >", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "Multiple redirection") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified sed |
+    tokens = TOK_tokenize_input("sed |", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified | sed
+    tokens = TOK_tokenize_input("| sed", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
+
+    // No command specified  echo || real_file.txt
+    tokens = TOK_tokenize_input(" echo || real_file.txt", errmsg, sizeof(errmsg));
+    tree = Parse(tokens, errmsg, sizeof(errmsg));
+    test_assert(tree == NULL);
+    test_assert(strcmp(errmsg, "No command specified") == 0);
+    TOK_free(tokens);
+    PT_free(tree);
 
     return 1;
 
@@ -350,7 +333,7 @@ int main()
     num_tests++;
     passed += test_parsing();
 
-    printf("Passed all test cases for tokenizing and parsing %d/%d\n", passed, num_tests);
+    printf("Passed all test cases for \e[01;35mTokenizing\e[01;39m and \e[01;33mParsing\e[01;39m %d/%d\n", passed, num_tests);
 
     fflush(stdout);
     return 0;

@@ -14,9 +14,11 @@ input
 output
 glob.c
 
+
 # Test
 setup_playground.sh
 plaidsh_test.py
+ps_test
 
 # Editor and IDE files
 .vscode
