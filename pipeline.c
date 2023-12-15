@@ -24,9 +24,12 @@
 #include "pipeline.h"
 #include "clist.h"
 
+
+// Function prototype declaration
 static int handlePipe(PipeTree tree);
 static int executeCommand(char *command, char *const *args, const char *in, const char *out);
 
+// definition of struct _pipe_tree_node
 struct _pipe_tree_node
 {
   PipeNodeType type;
@@ -290,6 +293,19 @@ int PT_evaluate(PipeTree tree)
   return handlePipe(tree);
 }
 
+/**
+ * Redirect STDOUT to a file
+ * 
+ * Redirects standard output (STDOUT) to the file specified by filePath
+ * instead of the original STDOUT.
+ *
+ * Parameters
+ *    ofd - Pointer to int to store file descriptor to file
+ *    original_stdout - Pointer to int to store original STDOUT fd 
+ *    filePath - Path of file to redirect STDOUT to
+ * 
+ * Return 0 on success, non-zero on failure
+*/
 static int redirectSTDOUT(int *ofd, int *original_stdout, const char *filePath)
 {
   const int mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
@@ -506,6 +522,19 @@ static int executeCommand(char *command, char *const *args, const char *in, cons
     }
   }
 }
+
+/**
+  * Execute a pipe command
+  *
+  * Executes the command pipeline specified by the parse tree
+  * tree. This handles all pipe and redirection syntax associated
+  * with the pipeline.
+  * 
+  * Paramters
+  *    tree - Parse tree with pipe/redirection commands
+  * 
+  * Return 0 on success, non-zero on failure
+*/
 
 static int handlePipe(PipeTree tree)
 {
