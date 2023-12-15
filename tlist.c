@@ -1,10 +1,10 @@
 /*
  *
- * clist.c
+ * tlist.c
  * 
- * Linked list implementation for ISSE Assignment 5
+ * Linked list implementation
  * 
- * Author: Howdy Pierce and Nwankwo Chukwunonso Michael
+ * Author: Nwankwo Chukwunonso Michael
  * 
  */
 
